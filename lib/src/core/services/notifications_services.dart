@@ -111,7 +111,7 @@ class NotificationService {
 
     const AndroidNotificationDetails androidNotificationDetails =
         AndroidNotificationDetails(
-      'saly_channel_1',
+      'saly_channel_v2',
       'Secondary Channel',
       channelDescription: "saly",
       importance: Importance.max,

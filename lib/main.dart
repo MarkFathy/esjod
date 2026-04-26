@@ -120,4 +120,3 @@ Future<void> _scheduleDailyPrayerTimes() async {
 //     return Future.value(true);
 //   });
 // }
-
