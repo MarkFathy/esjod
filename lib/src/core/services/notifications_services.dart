@@ -71,28 +71,34 @@ class NotificationService {
     );
   }
 
-  backgroundtask(PrayerTimes value) {
+  void backgroundtask(PrayerTimes value, int dayOffset) {
     final currenttime = DateTime.now();
 
     if (value.fajr.toLocal().isAfter(currenttime)) {
-      _schedulePrayerTimeNotification(value.fajr.toLocal(), 'الفجر');
+      _schedulePrayerTimeNotification(value.fajr.toLocal(), 'الفجر', dayOffset);
     }
     if (value.dhuhr.toLocal().isAfter(currenttime)) {
-      _schedulePrayerTimeNotification(value.dhuhr.toLocal(), 'الظهر');
+      _schedulePrayerTimeNotification(value.dhuhr.toLocal(), 'الظهر', dayOffset);
     }
     if (value.asr.toLocal().isAfter(currenttime)) {
-      _schedulePrayerTimeNotification(value.asr.toLocal(), 'العصر');
+      _schedulePrayerTimeNotification(value.asr.toLocal(), 'العصر', dayOffset);
     }
     if (value.maghrib.toLocal().isAfter(currenttime)) {
-      _schedulePrayerTimeNotification(value.maghrib.toLocal(), 'المغرب');
+      _schedulePrayerTimeNotification(value.maghrib.toLocal(), 'المغرب', dayOffset);
     }
     if (value.isha.toLocal().isAfter(currenttime)) {
-      _schedulePrayerTimeNotification(value.isha.toLocal(), 'العشاء');
+      _schedulePrayerTimeNotification(value.isha.toLocal(), 'العشاء', dayOffset);
     }
   }
 
   Future<void> cancelPrayerNotifier() async {
-    await flutterLocalNotificationsPlugin.cancelAll();
+    final prayers = ['الفجر', 'الظهر', 'العصر', 'المغرب', 'العشاء'];
+    for (int dayOffset = 0; dayOffset < 15; dayOffset++) {
+      for (final prayerName in prayers) {
+        final int notificationId = '${prayerName}_$dayOffset'.hashCode;
+        await flutterLocalNotificationsPlugin.cancel(notificationId);
+      }
+    }
   }
 
   Future<void> cancelSalyNotifier() async {
@@ -136,7 +142,7 @@ class NotificationService {
   }
 
   Future<void> _schedulePrayerTimeNotification(
-      DateTime prayerTime, String prayerName) async {
+      DateTime prayerTime, String prayerName, int dayOffset) async {
     const DarwinNotificationDetails iosNotificationDetails =
         DarwinNotificationDetails(
       presentSound: true,
@@ -163,9 +169,10 @@ class NotificationService {
     );
 
     final formattedTime = DateFormat('h:mm a').format(prayerTime);
+    final int notificationId = '${prayerName}_$dayOffset'.hashCode;
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
-      prayerName.hashCode,
+      notificationId,
       'وقت صلاة $prayerName',
       'حان الأن موعد أذان $prayerName, $formattedTime',
       tz.TZDateTime.from(prayerTime, tz.local),

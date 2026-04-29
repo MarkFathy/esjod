@@ -8,8 +8,10 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
 
-    <!-- ✅ Add this — required for media playback foreground service on Android 14+ -->
+    <!-- ✅ Required for media playback foreground service on Android 14+ -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
 
     <application
@@ -41,7 +43,9 @@
             </intent-filter>
         </activity>
 
-        <!-- Alarm Manager -->
+        <!-- ============================================
+             ALARM MANAGER
+             ============================================ -->
         <service
             android:name="dev.fluttercommunity.plus.androidalarmmanager.AlarmService"
             android:permission="android.permission.BIND_JOB_SERVICE"
@@ -60,11 +64,14 @@
             </intent-filter>
         </receiver>
 
-        <!-- Local Notifications -->
+        <!-- ============================================
+             LOCAL NOTIFICATIONS (NO DUPLICATES)
+             ============================================ -->
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
             android:exported="false"/>
 
+        <!-- ✅ KEEP ONLY ONE of these - this one handles boot completion -->
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
             android:exported="false">
@@ -76,7 +83,9 @@
             </intent-filter>
         </receiver>
 
-        <!-- ✅ Audio Service — fixed foregroundServiceType -->
+        <!-- ============================================
+             AUDIO SERVICE FOR ADHAN PLAYBACK
+             ============================================ -->
         <service
             android:name="com.ryanheise.audioservice.AudioService"
             android:exported="true"
@@ -91,8 +100,11 @@
             </intent-filter>
         </service>
 
-        <!-- ✅ Add this — needed by just_audio_background for media button handling -->
-        <receiver android:name="androidx.media.session.MediaButtonReceiver"
+        <!-- ============================================
+             MEDIA BUTTON RECEIVER
+             ============================================ -->
+        <receiver 
+            android:name="androidx.media.session.MediaButtonReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON"/>

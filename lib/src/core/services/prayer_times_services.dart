@@ -18,11 +18,30 @@ class PrayerTimesService {
 
   PrayerTimes? _prayerTimes;
   PrayerTimes? get prayerTimes => _prayerTimes;
-  DateTime? get nextPrayerTime => prayerTimes == null
-      ? null
-      : _prayerTimes!.timeForPrayer(prayerTimes!.nextPrayer());
-  String get nextPrayerName =>
-      prayerTimes == null ? '' : arabicName(prayerTimes!.nextPrayer().name);
+  DateTime? get nextPrayerTime {
+    if (prayerTimes == null) return null;
+    final next = prayerTimes!.nextPrayer();
+    if (next == Prayer.none) {
+      // After Isha, the next prayer is Fajr of tomorrow
+      final tomorrow = DateTime.now().add(const Duration(days: 1));
+      final tomorrowPrayerTimes = PrayerTimes(
+        prayerTimes!.coordinates,
+        DateComponents.from(tomorrow),
+        CalculationMethod.egyptian.getParameters()
+      );
+      return tomorrowPrayerTimes.fajr.toLocal();
+    }
+    return _prayerTimes!.timeForPrayer(next)?.toLocal();
+  }
+
+  String get nextPrayerName {
+    if (prayerTimes == null) return '';
+    final next = prayerTimes!.nextPrayer();
+    if (next == Prayer.none) {
+      return arabicName('fajr');
+    }
+    return arabicName(next.name);
+  }
 
   String arabicName(String name) {
     switch (name) {
@@ -46,7 +65,7 @@ class PrayerTimesService {
   Future<void> initialPrayerTimes() async {
     final sh = sl<SharedPreferences>();
     if (_prayerTimes != null) return;
-    await getLocationData().then((locationData) {
+    await getLocationData().then((locationData) async {
       if (locationData != null) {
         sh.setString('/location', jsonEncode(locationData.toJson()));
         _prayerTimes = PrayerTimes(
@@ -70,8 +89,16 @@ class PrayerTimesService {
         }
       }
       if (sh.getBool('/prayer') ?? true) {
-        // Workmanager().cancelAll();
-        NotificationService().backgroundtask(_prayerTimes!);
+        await NotificationService().cancelPrayerNotifier();
+        final loc = _prayerTimes!.coordinates;
+        for (int i = 0; i < 10; i++) {
+          final date = DateTime.now().add(Duration(days: i));
+          final prayerTimesForDay = PrayerTimes(
+              Coordinates(loc.latitude, loc.longitude),
+              DateComponents.from(date),
+              CalculationMethod.egyptian.getParameters());
+          NotificationService().backgroundtask(prayerTimesForDay, i);
+        }
       }
     });
   }
