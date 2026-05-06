@@ -20,9 +20,9 @@ class _EditionsListState extends State<EditionsList> {
   void onChange() => context.read<SurahBloc>().add(GetSurahEvent(
       number: widget.number,
       audioEdition:
-          audioEdition == null ? 'quran-uthmani' : audioEdition!.identifier!,
+          audioEdition == null ? 'ar.alafasy' : audioEdition!.identifier!,
       translationEdition:
-          textEdition == null ? 'ar.alafasy' : textEdition!.identifier!));
+          textEdition == null ? 'quran-uthmani' : textEdition!.identifier!));
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

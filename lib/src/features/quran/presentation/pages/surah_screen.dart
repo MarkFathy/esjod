@@ -64,6 +64,9 @@ class _SurahScreenState extends State<SurahScreen> {
             translationEdition: defaultTranslationEdition))),
       child: BlocConsumer<SurahBloc, SurahState>(
          listener: (context, state) async {
+  if (state is SurahLoadingState) {
+    isAudioInitialized = false;
+  }
   if (state is SurahLoadedState && !isAudioInitialized) {
     isAudioInitialized = true;
     final player = surahPlayer;

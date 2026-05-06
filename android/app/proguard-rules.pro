@@ -53,10 +53,35 @@
 -keep class io.flutter.plugins.sharedpreferences.** { *; }
 
 # ============================================
+# Android Intent Plus
+# ============================================
+-keep class com.yourcompany.androidintentplus.** { *; }
+-dontwarn com.yourcompany.androidintentplus.**
+
+# ============================================
 # Android Alarm Manager (if still referenced)
 # ============================================
 -keep class dev.fluttercommunity.plus.androidalarmmanager.** { *; }
 -dontwarn dev.fluttercommunity.plus.androidalarmmanager.**
+
+# ============================================
+# WorkManager - Background Task Execution
+# ============================================
+-keep class androidx.work.** { *; }
+-keep class androidx.work.impl.** { *; }
+-keep class androidx.work.multiprocess.** { *; }
+-dontwarn androidx.work.**
+
+# Keep WorkManager's internal classes for background execution
+-keep class androidx.work.impl.foreground.SystemForegroundService { *; }
+-keep class androidx.work.impl.utils.ForegroundProcessor { *; }
+-keep class androidx.work.impl.WorkManagerImpl { *; }
+
+# Keep WorkManager's broadcast receivers
+-keep class androidx.work.impl.constraints.trackers.BatteryChargingTracker { *; }
+-keep class androidx.work.impl.constraints.trackers.BatteryNotLowTracker { *; }
+-keep class androidx.work.impl.constraints.trackers.NetworkStateTracker { *; }
+-keep class androidx.work.impl.constraints.trackers.StorageStateTracker { *; }
 
 # ============================================
 # AndroidX Media

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:adhan/adhan.dart';
+import 'package:android_intent_plus/android_intent.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:azkar/src/injection_container.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
+import 'package:android_intent_plus/flag.dart';
 
 class NotificationService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -44,11 +46,14 @@ class NotificationService {
             sound: true,
           );
     } else {
-      final androidImplementation = flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<
+      final androidImplementation =
+          flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>();
 
       await androidImplementation?.requestNotificationsPermission();
+
+      // Request battery optimization exemption
+      await _requestBatteryOptimizationExemption();
     }
 
     const androidInitializationSettings =
@@ -71,6 +76,21 @@ class NotificationService {
     );
   }
 
+  Future<void> _requestBatteryOptimizationExemption() async {
+    if (!Platform.isAndroid) return;
+
+    try {
+      const intent = AndroidIntent(
+        action: 'android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS',
+        data: 'package:com.fourthpyramid.esjodapp',
+        flags: [Flag.FLAG_ACTIVITY_NEW_TASK],
+      );
+      await intent.launch();
+    } catch (e) {
+      debugPrint('Failed to request battery optimization exemption: $e');
+    }
+  }
+
   void backgroundtask(PrayerTimes value, int dayOffset) {
     final currenttime = DateTime.now();
 
@@ -78,22 +98,25 @@ class NotificationService {
       _schedulePrayerTimeNotification(value.fajr.toLocal(), 'الفجر', dayOffset);
     }
     if (value.dhuhr.toLocal().isAfter(currenttime)) {
-      _schedulePrayerTimeNotification(value.dhuhr.toLocal(), 'الظهر', dayOffset);
+      _schedulePrayerTimeNotification(
+          value.dhuhr.toLocal(), 'الظهر', dayOffset);
     }
     if (value.asr.toLocal().isAfter(currenttime)) {
       _schedulePrayerTimeNotification(value.asr.toLocal(), 'العصر', dayOffset);
     }
     if (value.maghrib.toLocal().isAfter(currenttime)) {
-      _schedulePrayerTimeNotification(value.maghrib.toLocal(), 'المغرب', dayOffset);
+      _schedulePrayerTimeNotification(
+          value.maghrib.toLocal(), 'المغرب', dayOffset);
     }
     if (value.isha.toLocal().isAfter(currenttime)) {
-      _schedulePrayerTimeNotification(value.isha.toLocal(), 'العشاء', dayOffset);
+      _schedulePrayerTimeNotification(
+          value.isha.toLocal(), 'العشاء', dayOffset);
     }
   }
 
   Future<void> cancelPrayerNotifier() async {
     final prayers = ['الفجر', 'الظهر', 'العصر', 'المغرب', 'العشاء'];
-    for (int dayOffset = 0; dayOffset < 15; dayOffset++) {
+    for (int dayOffset = 0; dayOffset < 30; dayOffset++) {
       for (final prayerName in prayers) {
         final int notificationId = '${prayerName}_$dayOffset'.hashCode;
         await flutterLocalNotificationsPlugin.cancel(notificationId);
@@ -116,20 +139,19 @@ class NotificationService {
     );
 
     const AndroidNotificationDetails androidNotificationDetails =
-        AndroidNotificationDetails(
-      'saly_channel_v2',
-      'Secondary Channel',
-      channelDescription: "saly",
-      importance: Importance.max,
-      priority: Priority.max,
-      playSound: true,
-      sound: RawResourceAndroidNotificationSound('saly'),
-    );
+        AndroidNotificationDetails('saly_channel_v2', 'Secondary Channel',
+            channelDescription: "saly",
+            importance: Importance.max,
+            priority: Priority.max,
+            playSound: true,
+            sound: RawResourceAndroidNotificationSound('saly'),
+            fullScreenIntent: true);
 
     const NotificationDetails notificationDetails = NotificationDetails(
       android: androidNotificationDetails,
       iOS: iosNotificationDetails,
     );
+
 
     await flutterLocalNotificationsPlugin.periodicallyShow(
       'saly'.hashCode,
@@ -161,6 +183,8 @@ class NotificationService {
       priority: Priority.max,
       playSound: true,
       sound: RawResourceAndroidNotificationSound('adhan'),
+      fullScreenIntent: true,
+      category: AndroidNotificationCategory.alarm,
     );
 
     const NotificationDetails notificationDetails2 = NotificationDetails(

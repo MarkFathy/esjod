@@ -14,8 +14,8 @@ class IntroScreen extends StatefulWidget {
 
 class _IntroScreenState extends State<IntroScreen> {
   go() async {
-    await Future.delayed(const Duration(seconds: 3))
-        .then((value) => NV.nextScreenReplace(context, const HomeScreen()));
+    await Future.delayed(const Duration(seconds: 3)).then(
+        (value) => NV.nextScreenReplaceNamed(context, HomeScreen.routeName));
   }
 
   @override

@@ -1,4 +1,3 @@
-import 'dart:io';
 // import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:azkar/src/core/services/notifications_services.dart';
 import 'package:azkar/src/core/services/prayer_times_services.dart';
@@ -6,11 +5,27 @@ import 'package:flutter/services.dart';
 // import 'package:azkar/src/features/quran/presentation/widgets/audio_player.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
-// import 'package:workmanager/workmanager.dart';
+import 'package:workmanager/workmanager.dart';
 import 'src/app.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'src/injection_container.dart' as di;
 import 'package:timezone/data/latest_all.dart' as tz;
+
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) async {
+    try {
+      await di.init();
+      tz.initializeTimeZones();
+      final prayerServ = PrayerTimesService();
+      await prayerServ.initialPrayerTimes();
+      return Future.value(true);
+    } catch (e) {
+      debugPrint('Workmanager error: $e');
+      return Future.value(false);
+    }
+  });
+}
 
 @pragma('vm:entry-point')
 void setPrayerTimes() {
@@ -38,6 +53,22 @@ void main() async {
   );
   await di.init();
   await initialBgTaska();
+
+  await Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
+
+  await Workmanager().registerPeriodicTask(
+    'prayerNotificationTask',
+    'prayerNotificationTask',
+    frequency: const Duration(hours: 1),
+    constraints: Constraints(
+      networkType: NetworkType.connected,
+      requiresBatteryNotLow: false,
+      requiresCharging: false,
+      requiresDeviceIdle: false,
+      requiresStorageNotLow: false,
+    ),
+  );
+
   runApp(const MyApp());
 }
 
