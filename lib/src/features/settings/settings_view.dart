@@ -1,99 +1,107 @@
 import 'package:azkar/src/injection_container.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:azkar/src/core/services/notifications_services.dart';
+import 'package:azkar/src/core/services/prayer_times_services.dart';
 
-/// Displays the various settings that can be customized by the user.
-///
-/// When a user changes a setting, the SettingsController is updated and
-/// Widgets that listen to the SettingsController are rebuilt.
-class SettingsView extends StatelessWidget {
+class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
 
   static const routeName = '/settings';
 
   @override
+  State<SettingsView> createState() => _SettingsViewState();
+}
+
+class _SettingsViewState extends State<SettingsView> {
+  final SharedPreferences sh = sl<SharedPreferences>();
+  late bool prayerRemainder;
+  late bool salyOnMuhammed;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load initial values from SharedPreferences, default to true if null
+    prayerRemainder = sh.getBool('/prayer') ?? true;
+    salyOnMuhammed = sh.getBool('/saly') ?? true;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final sh = sl<SharedPreferences>();
-    bool? salyOnMuhammed = sh.getBool('/saly');
-    bool? prayerRemainder = sh.getBool('/prayer');
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: const Text('الإعدادات'),
+        centerTitle: true,
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Padding(
-          //   padding: EdgeInsets.all(AppDimensions.normalize(12.0)),
-          //   child: Card(
-          //     child: Padding(
-          //       padding: EdgeInsets.symmetric(
-          //           horizontal: AppDimensions.normalize(10.0)),
-          //       child: DropdownButton<ThemeMode>(
-          //         value: controller.themeMode,
-          //         onChanged: controller.updateThemeMode,
-          //         underline: const Center(),
-          //         alignment: Alignment.centerLeft,
-          //         items: const [
-          //           DropdownMenuItem(
-          //             value: ThemeMode.system,
-          //             child: Text('System Theme'),
-          //           ),
-          //           DropdownMenuItem(
-          //             value: ThemeMode.light,
-          //             child: Text('Light Theme'),
-          //           ),
-          //           DropdownMenuItem(
-          //             value: ThemeMode.dark,
-          //             child: Text('Dark Theme'),
-          //           )
-          //         ],
-          //       ),
-          //     ),
-          //   ),
-          // ),
-          // const Spacer(),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Card(
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: SwitchListTile.adaptive(
+                value: prayerRemainder,
+                title: Text(
+                  'تنبيه الأذان',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: const Text('تفعيل أو إلغاء إشعارات مواقيت الصلاة والأذان'),
+                contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                onChanged: (val) async {
+                  setState(() {
+                    prayerRemainder = val;
+                  });
+                  await sh.setBool('/prayer', val);
 
-          Card(
-            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
-            child: StatefulBuilder(builder: (context, changeState) {
-              return SwitchListTile.adaptive(
-                  value: prayerRemainder ?? false,
-                  title: Text(
-                    'تنبيه الأذان',
-                    style: theme.textTheme.titleLarge,
+                  if (val) {
+                    await PrayerTimesService().initialPrayerTimes(forceRefresh: true);
+                  } else {
+                    await NotificationService().cancelPrayerNotifier();
+                  }
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: SwitchListTile.adaptive(
+                value: salyOnMuhammed,
+                title: Text(
+                  'تنبيه الصلاة على النبى',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 3, horizontal: 10),
-                  onChanged: prayerRemainder == null
-                      ? null
-                      : (val) {
-                          changeState(
-                              () => prayerRemainder = !prayerRemainder!);
-                          sh.setBool('/prayer', prayerRemainder!);
-                        });
-            }),
-          ),
-          Card(
-            child: StatefulBuilder(builder: (context, changeState) {
-              return SwitchListTile.adaptive(
-                  value: salyOnMuhammed ?? false,
-                  title: Text(
-                    'تنبيه الصلاة على النبى',
-                    style: theme.textTheme.titleLarge,
-                  ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 3, horizontal: 10),
-                  onChanged: salyOnMuhammed == null
-                      ? null
-                      : (val) {
-                          changeState(() => salyOnMuhammed = !salyOnMuhammed!);
-                          sh.setBool('/saly', salyOnMuhammed!);
-                        });
-            }),
-          ),
-        ],
+                ),
+                subtitle: const Text('تفعيل أو إلغاء التنبيه التذكيري بالصلاة على النبي كل ساعة'),
+                contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                onChanged: (val) async {
+                  setState(() {
+                    salyOnMuhammed = val;
+                  });
+                  await sh.setBool('/saly', val);
+
+                  if (val) {
+                    await NotificationService().schedulePrayOnMuhammedNotification();
+                  } else {
+                    await NotificationService().cancelSalyNotifier();
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

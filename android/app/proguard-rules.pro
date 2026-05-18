@@ -1,51 +1,91 @@
-# Flutter ProGuard Rules
+## Flutter ProGuard Rules
 
 # ============================================
-# Flutter Local Notifications - Critical Rules
+# Flutter Framework & Engine
 # ============================================
--keep class com.dexterous.flutterlocalnotifications.** { *; }
--keep class com.dexterous.** { *; }
--dontwarn com.dexterous.**
+-keep class io.flutter.app.** { *; }
+-keep class io.flutter.plugin.** { *; }
+-keep class io.flutter.util.** { *; }
+-keep class io.flutter.view.** { *; }
+-keep class io.flutter.** { *; }
+-keep class io.flutter.plugins.** { *; }
+-keep class io.flutter.embedding.** { *; }
 
-# Required by flutter_local_notifications for JSON serialization
--keep class com.google.gson.** { *; }
--keep class androidx.core.app.NotificationCompat** { *; }
+-keep class io.flutter.embedding.engine.plugins.FlutterPlugin { *; }
+-keep class io.flutter.plugin.common.MethodChannel$MethodCallHandler { *; }
+-keep class com.fourthpyramid.esjodapp.** { *; }
 
-# Keep specific notification receivers explicitly
--keep class com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver { *; }
--keep class com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver { *; }
--keep class com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver { *; }
--keep class com.dexterous.flutterlocalnotifications.NotificationBroadcastReceiver { *; }
+# Keep native methods for JNI
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
+
+# Keep Parcelable and Serializable
+-keep class * implements android.os.Parcelable {
+    public static final android.os.Parcelable$Creator *;
+}
+-keep class * implements java.io.Serializable { *; }
+
+# Keep attributes for reflection and annotations
+-keepattributes *Annotation*
+-keepattributes Signature
+-keepattributes Exceptions
+-keepattributes InnerClasses
+-keepattributes EnclosingMethod
+-keepattributes RuntimeVisibleAnnotations
+-keepattributes RuntimeInvisibleAnnotations
+-keepattributes RuntimeVisibleParameterAnnotations
+-keepattributes RuntimeInvisibleParameterAnnotations
+-keepattributes MethodParameters
 
 # ============================================
-# Geolocator
+# Awesome Notifications
 # ============================================
--keep class com.baseflow.geolocator.** { *; }
--keep class com.baseflow.** { *; }
--dontwarn com.baseflow.geolocator.**
+-keep class me.carda.awesome_notifications.** { *; }
+-dontwarn me.carda.awesome_notifications.**
+-keep class * extends me.carda.awesome_notifications.notifications.broadcasters.NotificationBroadcastReceiver { *; }
+-keep class * extends me.carda.awesome_notifications.notifications.broadcasters.ScheduledNotificationReceiver { *; }
+-keep class * extends me.carda.awesome_notifications.notifications.broadcasters.BootBroadcastReceiver { *; }
+-keep class me.carda.awesome_notifications.models.** { *; }
 
 # ============================================
 # Just Audio & Audio Service
 # ============================================
 -keep class com.ryanheise.just_audio.** { *; }
 -keep class com.ryanheise.audioservice.** { *; }
--keep class com.ryanheise.** { *; }
 -dontwarn com.ryanheise.just_audio.**
 -dontwarn com.ryanheise.audioservice.**
-
-# Keep just_audio Java classes
--keep class * extends com.ryanheise.just_audio.AudioPlayer { *; }
--keepclassmembers class com.ryanheise.just_audio.AudioPlayer {
-    <init>(...);
-    <fields>;
-    <methods>;
-}
-
-# Keep audio session and ExoPlayer classes used by just_audio
 -keep class com.google.android.exoplayer2.** { *; }
--keep class androidx.media2.** { *; }
 -dontwarn com.google.android.exoplayer2.**
--dontwarn androidx.media2.**
+
+# ============================================
+# WorkManager - Background Task Execution
+# ============================================
+-keep class androidx.work.** { *; }
+-dontwarn androidx.work.**
+-keep class androidx.work.impl.** { *; }
+-keep class androidx.work.impl.foreground.SystemForegroundService { *; }
+-keep class dev.fluttercommunity.workmanager.** { *; }
+-dontwarn dev.fluttercommunity.workmanager.**
+-keep class be.tramckrijte.workmanager.** { *; }
+
+# ============================================
+# Android Alarm Manager Plus
+# ============================================
+-keep class dev.fluttercommunity.plus.androidalarmmanager.** { *; }
+-dontwarn dev.fluttercommunity.plus.androidalarmmanager.**
+
+# ============================================
+# Android Intent Plus
+# ============================================
+-keep class io.flutter.plugins.androidintentplus.** { *; }
+-dontwarn io.flutter.plugins.androidintentplus.**
+
+# ============================================
+# Geolocator
+# ============================================
+-keep class com.baseflow.geolocator.** { *; }
+-dontwarn com.baseflow.geolocator.**
 
 # ============================================
 # Shared Preferences
@@ -53,54 +93,18 @@
 -keep class io.flutter.plugins.sharedpreferences.** { *; }
 
 # ============================================
-# Android Intent Plus
-# ============================================
--keep class com.yourcompany.androidintentplus.** { *; }
--dontwarn com.yourcompany.androidintentplus.**
-
-# ============================================
-# Android Alarm Manager (if still referenced)
-# ============================================
--keep class dev.fluttercommunity.plus.androidalarmmanager.** { *; }
--dontwarn dev.fluttercommunity.plus.androidalarmmanager.**
-
-# ============================================
-# WorkManager - Background Task Execution
-# ============================================
--keep class androidx.work.** { *; }
--keep class androidx.work.impl.** { *; }
--keep class androidx.work.multiprocess.** { *; }
--dontwarn androidx.work.**
-
-# Keep WorkManager's internal classes for background execution
--keep class androidx.work.impl.foreground.SystemForegroundService { *; }
--keep class androidx.work.impl.utils.ForegroundProcessor { *; }
--keep class androidx.work.impl.WorkManagerImpl { *; }
-
-# Keep WorkManager's broadcast receivers
--keep class androidx.work.impl.constraints.trackers.BatteryChargingTracker { *; }
--keep class androidx.work.impl.constraints.trackers.BatteryNotLowTracker { *; }
--keep class androidx.work.impl.constraints.trackers.NetworkStateTracker { *; }
--keep class androidx.work.impl.constraints.trackers.StorageStateTracker { *; }
-
-# ============================================
-# AndroidX Media
+# General Android Framework & Media
 # ============================================
 -keep class androidx.media.** { *; }
--keep class androidx.media.session.** { *; }
--keep class android.support.v4.media.** { *; }
 -dontwarn androidx.media.**
+-keep class android.support.v4.media.** { *; }
+-keep class com.google.gson.** { *; }
 
 # ============================================
-# General Android Notification Framework
+# Play Core (Required for some plugins and AGP 8.x)
 # ============================================
--keep class android.app.Notification { *; }
--keep class android.app.Notification$Builder { *; }
--keep class android.app.NotificationChannel { *; }
--keep class android.app.NotificationManager { *; }
--keep class android.app.PendingIntent { *; }
--keep class android.app.AlarmManager { *; }
--keep class android.content.BroadcastReceiver { *; }
+-dontwarn com.google.android.play.core.**
+-keep class com.google.android.play.core.** { *; }
 
 # ============================================
 # Keep ALL BroadcastReceivers and Services
@@ -114,51 +118,13 @@
 }
 
 # ============================================
-# Flutter Framework
+# Upgrader
 # ============================================
--keep class io.flutter.app.** { *; }
--keep class io.flutter.plugin.** { *; }
--keep class io.flutter.util.** { *; }
--keep class io.flutter.view.** { *; }
--keep class io.flutter.** { *; }
--keep class io.flutter.plugins.** { *; }
--keep class io.flutter.embedding.** { *; }
+-keep class com.it_nomads.flutter_upgrader.** { *; }
+-dontwarn com.it_nomads.flutter_upgrader.**
 
 # ============================================
-# Keep native methods
+# General Suppressions for AGP 8.x / R8
 # ============================================
--keepclasseswithmembernames class * {
-    native <methods>;
-}
-
-# ============================================
-# Keep Parcelable and Serializable
-# ============================================
--keep class * implements android.os.Parcelable {
-    public static final android.os.Parcelable$Creator *;
-}
--keep class * implements java.io.Serializable { *; }
-
-# ============================================
-# Google Play Core - dont warn (not needed for APK)
-# ============================================
--dontwarn com.google.android.play.core.splitcompat.**
--dontwarn com.google.android.play.core.splitinstall.**
--dontwarn com.google.android.play.core.tasks.**
-
-# ============================================
-# Keep attributes
-# ============================================
--keepattributes *Annotation*
--keepattributes Signature
--keepattributes Exceptions
--keepattributes InnerClasses
--keepattributes EnclosingMethod
--keepattributes RuntimeVisibleAnnotations
--keepattributes RuntimeInvisibleAnnotations
--keepattributes RuntimeVisibleParameterAnnotations
--keepattributes RuntimeInvisibleParameterAnnotations
--keepattributes MethodParameters
--keepattributes LocalVariableTable
--keepattributes LocalVariableTypeTable
--keepattributes Deprecated
+-ignorewarnings
+-dontnote **

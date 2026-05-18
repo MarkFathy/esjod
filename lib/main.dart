@@ -1,24 +1,38 @@
-// import 'package:assets_audio_player/assets_audio_player.dart';
+import 'dart:io';
+
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:azkar/src/core/services/notifications_services.dart';
 import 'package:azkar/src/core/services/prayer_times_services.dart';
-import 'package:flutter/services.dart';
-// import 'package:azkar/src/features/quran/presentation/widgets/audio_player.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:just_audio_background/just_audio_background.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 import 'src/app.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 import 'src/injection_container.dart' as di;
-import 'package:timezone/data/latest_all.dart' as tz;
+
+final notiService = NotificationService();
+final prayerService = PrayerTimesService();
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     try {
       await di.init();
-      tz.initializeTimeZones();
-      final prayerServ = PrayerTimesService();
-      await prayerServ.initialPrayerTimes();
+      await NotificationService().initializenotification();
+
+      if (task == 'updatePrayerTimes') {
+        final prayerServ = PrayerTimesService();
+        await prayerServ.initialPrayerTimes(forceRefresh: true);
+
+        final sh = di.sl<SharedPreferences>();
+        bool salyOn = sh.getBool('/saly') ?? true;
+        if (salyOn) {
+          await NotificationService().schedulePrayOnMuhammedNotification();
+        }
+        debugPrint('Workmanager: Prayers & Saly renewed ✅');
+      }
+
       return Future.value(true);
     } catch (e) {
       debugPrint('Workmanager error: $e');
@@ -27,17 +41,9 @@ void callbackDispatcher() {
   });
 }
 
-@pragma('vm:entry-point')
-void setPrayerTimes() {
-  final prayerServ = PrayerTimesService();
-  prayerServ.initialPrayerTimes();
-}
-
-final notiService = NotificationService();
-final prayerService = PrayerTimesService();
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -51,17 +57,18 @@ void main() async {
     androidNotificationChannelName: 'Audio Playback',
     androidNotificationOngoing: true,
   );
-  await di.init();
-  await initialBgTaska();
 
-  await Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
+  await di.init();
+
+  await Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
 
   await Workmanager().registerPeriodicTask(
-    'prayerNotificationTask',
-    'prayerNotificationTask',
-    frequency: const Duration(hours: 1),
+    'updatePrayerTimes',
+    'updatePrayerTimes',
+    frequency: const Duration(hours: 12),
+    initialDelay: const Duration(minutes: 15),
+    existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
     constraints: Constraints(
-      networkType: NetworkType.connected,
       requiresBatteryNotLow: false,
       requiresCharging: false,
       requiresDeviceIdle: false,
@@ -70,6 +77,26 @@ void main() async {
   );
 
   runApp(const MyApp());
+
+  // كل حاجة تانية بعد ما الـ UI يبني
+  // ملاحظة: battery exemption اتنقلت للـ IntroScreen
+  Future.delayed(const Duration(seconds: 1), () async {
+    await initialBgTaska();
+    await _requestAndroidPermissions();
+  });
+}
+
+Future<void> _requestAndroidPermissions() async {
+  if (!Platform.isAndroid) return;
+
+  // battery exemption بتتعمل في IntroScreen مش هنا
+  bool isPrecisionAllowed = await AwesomeNotifications().checkPermissionList(
+    permissions: [NotificationPermission.PreciseAlarms],
+  ).then((list) => list.contains(NotificationPermission.PreciseAlarms));
+
+  if (!isPrecisionAllowed) {
+    await AwesomeNotifications().showAlarmPage();
+  }
 }
 
 Future<void> initialBgTaska() async {
@@ -86,68 +113,20 @@ Future<void> initialBgTaska() async {
   }
 
   if (salyOn) {
-    notiService.schedulePrayOnMuhammedNotification();
+    if (notiService.needsSalyRenewal()) {
+      await notiService.schedulePrayOnMuhammedNotification();
+    }
   } else {
-    notiService.cancelSalyNotifier();
+    await notiService.cancelSalyNotifier();
   }
 
   if (prayerOn) {
-    tz.initializeTimeZones();
-
     await _scheduleDailyPrayerTimes();
   } else {
-    notiService.cancelPrayerNotifier();
+    await notiService.cancelPrayerNotifier();
   }
 }
 
 Future<void> _scheduleDailyPrayerTimes() async {
-  final prayerServ = PrayerTimesService();
-  prayerServ.initialPrayerTimes();
+  await prayerService.initialPrayerTimes(forceRefresh: true);
 }
-
-// void test() async {
-//   try {
-//     final result = await InternetAddress.lookup('api.alquran.cloud');
-//     print(result);
-//   } catch (e) {
-//     print('DNS ERROR: $e');
-//   }
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  //
-  // Workmanager().executeTask((task, inputData) async {
-//   try {
-
-//   } catch (e) {
-//     debugPrint(e.toString());
-//   }
-
-// @pragma('vm:entry-point')
-// void callbackDispatcher() {
-//   Workmanager().executeTask((task, inputData) async {
-//     final player = AudioP.player;
-//     player.open(Audio('assets/adhan.wav'),
-//         autoStart: true,
-//         forceOpen: true,
-//         loopMode: LoopMode.none,
-//         respectSilentMode: false,
-//         showNotification: false,
-//         playInBackground: PlayInBackground.enabled);
-//     return Future.value(true);
-//   });
-// }

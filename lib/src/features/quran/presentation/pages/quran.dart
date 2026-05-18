@@ -72,7 +72,9 @@ class Quran extends StatelessWidget {
                                             pinState.pin!.surah! ==
                                             element.number),
                                   ),
-                                ));
+                                )).then((_) {
+                                  context.read<PinBloc>().add(GetPinEvent());
+                                });
                               },
                               child: Material(
                                 borderRadius: BorderRadius.circular(5),

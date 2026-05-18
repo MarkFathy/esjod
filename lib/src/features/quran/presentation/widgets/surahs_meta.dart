@@ -5,6 +5,8 @@ import '../../../../core/utils/app_images.dart';
 import '../../domain/entities/surahs.dart';
 import '../pages/surah_screen.dart';
 import 'package:flutter/material.dart';
+import '../bloc/pin/bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class SurahsMeta extends StatelessWidget {
   final ReferencesEntity reference;
@@ -26,7 +28,9 @@ class SurahsMeta extends StatelessWidget {
       child: InkWell(
         onTap: () => Navigator.of(context).push(MaterialPageRoute(
           builder: (context) => SurahScreen(ref: reference),
-        )),
+        )).then((_) {
+          context.read<PinBloc>().add(GetPinEvent());
+        }),
         child: Card(
           // margin: EdgeInsets.zero,
           // shape: RoundedRectangleBorder(),

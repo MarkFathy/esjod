@@ -5,7 +5,6 @@ import 'package:azkar/src/core/services/notifications_services.dart';
 import 'package:azkar/src/injection_container.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// import 'package:workmanager/workmanager.dart';
 
 class PrayerTimesService {
   static final PrayerTimesService _prayerTimesService =
@@ -18,16 +17,16 @@ class PrayerTimesService {
 
   PrayerTimes? _prayerTimes;
   PrayerTimes? get prayerTimes => _prayerTimes;
+
   DateTime? get nextPrayerTime {
     if (prayerTimes == null) return null;
     final next = prayerTimes!.nextPrayer();
     if (next == Prayer.none) {
-      // After Isha, the next prayer is Fajr of tomorrow
       final tomorrow = DateTime.now().add(const Duration(days: 1));
       final tomorrowPrayerTimes = PrayerTimes(
         prayerTimes!.coordinates,
         DateComponents.from(tomorrow),
-        CalculationMethod.egyptian.getParameters()
+        CalculationMethod.egyptian.getParameters(),
       );
       return tomorrowPrayerTimes.fajr.toLocal();
     }
@@ -62,9 +61,18 @@ class PrayerTimesService {
     }
   }
 
-  Future<void> initialPrayerTimes() async {
+  Future<void>? _initFuture;
+
+  Future<void> initialPrayerTimes({bool forceRefresh = false}) async {
+    if (_prayerTimes != null && !forceRefresh) return;
+    if (_initFuture != null && !forceRefresh) return _initFuture;
+
+    _initFuture = _init();
+    return _initFuture;
+  }
+
+  Future<void> _init() async {
     final sh = sl<SharedPreferences>();
-    if (_prayerTimes != null) return;
     await getLocationData().then((locationData) async {
       if (locationData != null) {
         sh.setString('/location', jsonEncode(locationData.toJson()));
@@ -75,7 +83,6 @@ class PrayerTimesService {
       } else {
         final locData = sh.getString('/location');
         if (locData == null) {
-          // Default to Cairo, Egypt if no location is cached or granted
           _prayerTimes = PrayerTimes(
               Coordinates(30.0444, 31.2357),
               DateComponents.from(DateTime.now()),
@@ -88,24 +95,29 @@ class PrayerTimesService {
               CalculationMethod.egyptian.getParameters());
         }
       }
+
       if (sh.getBool('/prayer') ?? true) {
         await NotificationService().cancelPrayerNotifier();
         final loc = _prayerTimes!.coordinates;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 3; i++) {
           final date = DateTime.now().add(Duration(days: i));
           final prayerTimesForDay = PrayerTimes(
               Coordinates(loc.latitude, loc.longitude),
               DateComponents.from(date),
               CalculationMethod.egyptian.getParameters());
-          NotificationService().backgroundtask(prayerTimesForDay, i);
+          await NotificationService().backgroundtask(prayerTimesForDay, i);
         }
       }
     });
+
+    // reset عشان يقدر يتجدد تاني
+    _initFuture = null;
   }
 
   Future<Position?> getLocationData() async {
     bool serviceEnabled;
     LocationPermission permission;
+
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       return null;
@@ -122,6 +134,7 @@ class PrayerTimesService {
     if (permission == LocationPermission.deniedForever) {
       return null;
     }
+
     return await Geolocator.getCurrentPosition();
   }
 }

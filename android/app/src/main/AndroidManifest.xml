@@ -12,6 +12,7 @@
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <!-- ✅ Required for media playback foreground service on Android 14+ -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
@@ -77,19 +78,21 @@
             tools:replace="android:directBootAware"/>
 
         <!-- ============================================
-             LOCAL NOTIFICATIONS (NO DUPLICATES)
+             AWESOME NOTIFICATIONS
              ============================================ -->
         <receiver
-            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
+            android:name="me.carda.awesome_notifications.notifications.broadcasters.NotificationBroadcastReceiver"
             android:exported="false"/>
 
-        <!-- ✅ KEEP ONLY ONE of these - this one handles boot completion -->
         <receiver
-            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:name="me.carda.awesome_notifications.notifications.broadcasters.ScheduledNotificationReceiver"
+            android:exported="false"/>
+
+        <receiver
+            android:name="me.carda.awesome_notifications.notifications.broadcasters.BootBroadcastReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
-                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
                 <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
             </intent-filter>

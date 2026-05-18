@@ -378,14 +378,19 @@ class _SurahScreenState extends State<SurahScreen> {
                                         builder: (context, pinState) {
                                       return AyahPlayer(
                                         pinning: () async {
-                                          if (selectedAyah == null) {
-                                            return;
+                                          Ayahs? ayahToPin = selectedAyah;
+                                          if (ayahToPin == null) {
+                                            final currentIndex = surahPlayer!.currentIndex;
+                                            if (currentIndex != null && currentIndex >= 0 && currentIndex < surahState.surah.translationData!.ayahs!.length) {
+                                              ayahToPin = surahState.surah.translationData!.ayahs![currentIndex];
+                                            }
                                           }
+                                          if (ayahToPin == null) return;
+
                                           if (pinState is PinLoadedState) {
                                             if (pinState.pin != null &&
                                                 pinState.pin!.ayah ==
-                                                    selectedAyah!
-                                                        .numberInSurah &&
+                                                    ayahToPin.numberInSurah &&
                                                 widget.ref.number ==
                                                     pinState.pin!.surah) {
                                               context.read<PinBloc>().add(
@@ -394,8 +399,7 @@ class _SurahScreenState extends State<SurahScreen> {
                                             } else {
                                               context.read<PinBloc>().add(
                                                   SetPinEvent(PinModel(
-                                                      ayah: selectedAyah!
-                                                          .numberInSurah,
+                                                      ayah: ayahToPin.numberInSurah,
                                                       surah: widget.ref.number,
                                                       title: widget.ref.name)));
                                             }

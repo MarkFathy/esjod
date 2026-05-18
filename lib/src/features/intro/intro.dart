@@ -1,6 +1,8 @@
-import '../../core/utils/entrance_fader.dart';
-import '../../core/utils/nav.dart';
-import '../home/home_screen.dart';
+import 'dart:io';
+
+import 'package:azkar/src/core/services/notifications_services.dart';
+import 'package:azkar/src/features/home/home_screen.dart';
+import 'package:azkar/src/core/utils/entrance_fader.dart';
 import 'package:flutter/material.dart';
 
 class IntroScreen extends StatefulWidget {
@@ -13,15 +15,31 @@ class IntroScreen extends StatefulWidget {
 }
 
 class _IntroScreenState extends State<IntroScreen> {
-  go() async {
-    await Future.delayed(const Duration(seconds: 3)).then(
-        (value) => NV.nextScreenReplaceNamed(context, HomeScreen.routeName));
-  }
-
   @override
   void initState() {
     super.initState();
-    go();
+    _init();
+  }
+
+  Future<void> _init() async {
+    // اعرض الـ battery dialog فوراً — اليوزر شايف الـ splash واللوجو
+    await _handleBatteryOptimization();
+
+    await Future.delayed(const Duration(seconds: 3));
+    if (mounted) {
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        HomeScreen.routeName,
+        (route) => false,
+      );
+    }
+  }
+
+  Future<void> _handleBatteryOptimization() async {
+    if (!Platform.isAndroid) return;
+    // بتتحقق من Android مباشرةً — لو معفي بالفعل متعملش حاجة
+    // لو رفض أو عمل باك هتظهر تاني في الفتحة الجاية
+    await NotificationService().requestBatteryOptimizationExemption();
   }
 
   @override
@@ -32,18 +50,19 @@ class _IntroScreenState extends State<IntroScreen> {
         fit: StackFit.expand,
         children: [
           Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              child: EntranceFader(
-                delay: const Duration(milliseconds: 100),
-                duration: const Duration(milliseconds: 350),
-                offset: const Offset(0.0, -30.0),
-                child: Image.asset(
-                  'assets/images/frame-t.png',
-                  fit: BoxFit.cover,
-                ),
-              )),
+            left: 0,
+            right: 0,
+            top: 0,
+            child: EntranceFader(
+              delay: const Duration(milliseconds: 100),
+              duration: const Duration(milliseconds: 350),
+              offset: const Offset(0.0, -30.0),
+              child: Image.asset(
+                'assets/images/frame-t.png',
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
           Positioned(
             left: 0,
             right: 0,
@@ -79,7 +98,7 @@ class _IntroScreenState extends State<IntroScreen> {
                 ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );

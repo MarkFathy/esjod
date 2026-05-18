@@ -82,15 +82,19 @@ class AyahPlayer extends StatelessWidget {
                                       ),
                                       IconButton(
                                         onPressed: () async {
-                                          if (loopMode == LoopMode.all) {
+                                          if (loopMode == LoopMode.off) {
+                                            await audioPlayer.setLoopMode(LoopMode.all);
+                                          } else if (loopMode == LoopMode.all) {
                                             await audioPlayer.setLoopMode(LoopMode.one);
                                           } else {
-                                            await audioPlayer.setLoopMode(LoopMode.all);
+                                            await audioPlayer.setLoopMode(LoopMode.off);
                                           }
                                         },
                                         icon: loopMode == LoopMode.one
-                                            ? const Icon(Icons.repeat_one, color: whiteColor)
-                                            : const Icon(Icons.repeat, color: whiteColor),
+                                            ? const Icon(Icons.repeat_one, color: secondaryColor)
+                                            : loopMode == LoopMode.all
+                                                ? const Icon(Icons.repeat, color: secondaryColor)
+                                                : const Icon(Icons.repeat, color: whiteColor),
                                       ),
                                       IconButton(
                                         onPressed: pinning,
