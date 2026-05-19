@@ -60,10 +60,10 @@ class NotificationService {
   Future<void> initializenotification() async {
     await AwesomeNotifications().initialize(null, [
       NotificationChannel(
-        channelKey: 'prayer_channel',
-        channelName: 'Prayer Notifications',
-        channelDescription: 'Adhan notifications for prayer times',
-        defaultColor: const Color(0xFF9D50DD),
+        channelKey: 'prayer_reminder',
+        channelName: 'تذكير الصلاة',
+        channelDescription: 'تنبيه الأذان لكل صلاة',
+        defaultColor: const Color(0xFF33A1E0),
         ledColor: Colors.white,
         importance: NotificationImportance.Max,
         playSound: true,
@@ -178,7 +178,7 @@ class NotificationService {
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
         id: notificationId,
-        channelKey: 'prayer_channel',
+        channelKey: 'prayer_reminder',
         title: 'وقت صلاة $prayerName',
         body: 'حان الآن موعد أذان $prayerName',
         notificationLayout: NotificationLayout.Default,

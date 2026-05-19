@@ -23,7 +23,7 @@ void callbackDispatcher() {
 
       if (task == 'updatePrayerTimes') {
         final prayerServ = PrayerTimesService();
-        await prayerServ.initialPrayerTimes(forceRefresh: true);
+        await prayerServ.initialPrayerTimes(forceRefresh: true, isBackground: true);
 
         final sh = di.sl<SharedPreferences>();
         bool salyOn = sh.getBool('/saly') ?? true;
