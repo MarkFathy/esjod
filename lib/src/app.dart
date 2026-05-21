@@ -43,7 +43,7 @@ class MyAppState extends State<MyApp> {
                   showIgnore: false,
                   showLater: true,
                   upgrader: Upgrader(
-                    minAppVersion: '1.5.3+30',
+                    minAppVersion: '1.5.4+31',
                     debugDisplayAlways: false,
                     debugLogging: false,
                     languageCode: 'ar',

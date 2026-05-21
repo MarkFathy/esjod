@@ -106,8 +106,9 @@ class NotificationService {
   // ============================================================
   // BATTERY OPTIMIZATION
   // ============================================================
-  Future<bool> _isBatteryOptimizationExempt() async {
+  Future<bool> isBatteryOptimizationExempt() async {
     try {
+      if (!Platform.isAndroid) return true;
       final bool isExempt =
           await _batteryChannel.invokeMethod('isIgnoringBatteryOptimizations');
       return isExempt;
@@ -122,7 +123,7 @@ class NotificationService {
       if (!Platform.isAndroid) return;
 
       // تحقق من Android مباشرةً — لو معفي متعملش حاجة
-      final isExempt = await _isBatteryOptimizationExempt();
+      final isExempt = await isBatteryOptimizationExempt();
       if (isExempt) return;
 
       const intent = AndroidIntent(
@@ -264,6 +265,19 @@ class NotificationService {
   // ============================================================
   bool needsSalyRenewal() {
     final lastScheduled = sh.getString('/saly_last_scheduled');
+    if (lastScheduled == null) return true;
+
+    final lastDate = DateTime.parse(lastScheduled);
+    final daysSince = DateTime.now().difference(lastDate).inDays;
+
+    return daysSince >= 1;
+  }
+
+  // ============================================================
+  // تحقق إذا محتاج تجديد الأذان — كل 1 يوم
+  // ============================================================
+  bool needsPrayerRenewal() {
+    final lastScheduled = sh.getString('/prayer_last_scheduled');
     if (lastScheduled == null) return true;
 
     final lastDate = DateTime.parse(lastScheduled);

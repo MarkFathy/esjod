@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:azkar/src/core/services/notifications_services.dart';
 import 'package:azkar/src/core/services/prayer_times_services.dart';
@@ -121,7 +120,9 @@ Future<void> initialBgTaska() async {
   }
 
   if (prayerOn) {
-    await _scheduleDailyPrayerTimes();
+    if (notiService.needsPrayerRenewal()) {
+      await _scheduleDailyPrayerTimes();
+    }
   } else {
     await notiService.cancelPrayerNotifier();
   }

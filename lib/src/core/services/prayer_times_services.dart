@@ -126,6 +126,7 @@ class PrayerTimesService {
             CalculationMethod.egyptian.getParameters());
         await NotificationService().backgroundtask(prayerTimesForDay, i);
       }
+      await sh.setString('/prayer_last_scheduled', DateTime.now().toIso8601String());
     }
 
     // reset عشان يقدر يتجدد تاني

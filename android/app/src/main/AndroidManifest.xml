@@ -77,26 +77,6 @@
             android:directBootAware="true"
             tools:replace="android:directBootAware"/>
 
-        <!-- ============================================
-             AWESOME NOTIFICATIONS
-             ============================================ -->
-        <receiver
-            android:name="me.carda.awesome_notifications.notifications.broadcasters.NotificationBroadcastReceiver"
-            android:exported="false"/>
-
-        <receiver
-            android:name="me.carda.awesome_notifications.notifications.broadcasters.ScheduledNotificationReceiver"
-            android:exported="false"/>
-
-        <receiver
-            android:name="me.carda.awesome_notifications.notifications.broadcasters.BootBroadcastReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
-                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
-                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
-            </intent-filter>
-        </receiver>
 
         <!-- ============================================
              AUDIO SERVICE FOR ADHAN PLAYBACK
