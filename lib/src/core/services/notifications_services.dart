@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:adhan/adhan.dart';
@@ -67,9 +68,9 @@ class NotificationService {
         ledColor: Colors.white,
         importance: NotificationImportance.Max,
         playSound: true,
-        enableVibration: false,
+        enableVibration: false, // Disabled as per user request for long audio
         criticalAlerts: true,
-        locked: false,
+        locked: true, // Pro apps don't let you swipe away active alarms easily
         defaultPrivacy: NotificationPrivacy.Public,
         soundSource: 'resource://raw/adhan',
       ),
@@ -85,7 +86,7 @@ class NotificationService {
         defaultPrivacy: NotificationPrivacy.Public,
         soundSource: 'resource://raw/saly',
       ),
-    ], debug: true);
+    ], debug: false);
 
     await AwesomeNotifications().setListeners(
       onActionReceivedMethod: NotificationController.onActionReceivedMethod,
@@ -97,6 +98,7 @@ class NotificationService {
           NotificationController.onDismissActionReceivedMethod,
     );
 
+    // Request Notification Permissions
     bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
     if (!isAllowed) {
       await AwesomeNotifications().requestPermissionToSendNotifications();
@@ -104,7 +106,7 @@ class NotificationService {
   }
 
   // ============================================================
-  // BATTERY OPTIMIZATION
+  // BATTERY OPTIMIZATION & EXACT ALARM PERMISSIONS
   // ============================================================
   Future<bool> isBatteryOptimizationExempt() async {
     try {
@@ -122,7 +124,6 @@ class NotificationService {
     try {
       if (!Platform.isAndroid) return;
 
-      // تحقق من Android مباشرةً — لو معفي متعملش حاجة
       final isExempt = await isBatteryOptimizationExempt();
       if (isExempt) return;
 
@@ -138,8 +139,22 @@ class NotificationService {
     }
   }
 
+  Future<void> requestExactAlarmPermission() async {
+    if (!Platform.isAndroid) return;
+    const intent = AndroidIntent(
+      action: 'android.settings.REQUEST_SCHEDULE_EXACT_ALARM',
+      data: 'package:com.fourthpyramid.esjodapp',
+      flags: [Flag.FLAG_ACTIVITY_NEW_TASK],
+    );
+    try {
+      await intent.launch();
+    } catch (e) {
+      debugPrint('Exact Alarm Permission Error: $e');
+    }
+  }
+
   // ============================================================
-  // PRAYER NOTIFICATIONS — 30 يوم
+  // PRAYER NOTIFICATIONS
   // ============================================================
   Future<void> backgroundtask(PrayerTimes value, int dayOffset) async {
     await _schedulePrayerTimeNotification(
@@ -155,13 +170,7 @@ class NotificationService {
   }
 
   Future<void> cancelPrayerNotifier() async {
-    final prayers = ['الفجر', 'الظهر', 'العصر', 'المغرب', 'العشاء'];
-    for (int dayOffset = 0; dayOffset < 30; dayOffset++) {
-      for (final prayerName in prayers) {
-        final int notificationId = '${prayerName}_$dayOffset'.hashCode;
-        await AwesomeNotifications().cancel(notificationId);
-      }
-    }
+    await AwesomeNotifications().cancelNotificationsByChannelKey('prayer_reminder');
   }
 
   Future<void> _schedulePrayerTimeNotification(
@@ -183,13 +192,27 @@ class NotificationService {
         title: 'وقت صلاة $prayerName',
         body: 'حان الآن موعد أذان $prayerName',
         notificationLayout: NotificationLayout.Default,
-        category: NotificationCategory.Reminder,
-        autoDismissible: true,
+        category: NotificationCategory.Reminder, // Reverted to Reminder so it doesn't loop
+        autoDismissible: false, // User MUST explicitly interact to dismiss
         wakeUpScreen: true,
-        fullScreenIntent: false,
+        fullScreenIntent: true, // Show over lock screen
         displayOnForeground: true,
         displayOnBackground: true,
       ),
+      actionButtons: [
+        NotificationActionButton(
+          key: 'STOP_ADHAN',
+          label: 'إيقاف',
+          autoDismissible: true,
+          actionType: ActionType.DismissAction,
+        ),
+        NotificationActionButton(
+          key: 'OPEN_APP',
+          label: 'فتح التطبيق',
+          autoDismissible: true,
+          actionType: ActionType.Default,
+        ),
+      ],
       schedule: NotificationCalendar(
         timeZone: await AwesomeNotifications().getLocalTimeZoneIdentifier(),
         year: prayerTime.year,
@@ -208,22 +231,70 @@ class NotificationService {
   }
 
   // ============================================================
-  // SALY NOTIFICATIONS — 72 ساعة (3 أيام)
+  // HOURLY SALY NOTIFICATIONS
   // ============================================================
   Future<void> schedulePrayOnMuhammedNotification() async {
     await cancelSalyNotifier();
 
     final String timeZone =
         await AwesomeNotifications().getLocalTimeZoneIdentifier();
-    final now = DateTime.now();
 
-    for (int i = 1; i <= 72; i++) {
-      final scheduledTime = now.add(Duration(hours: i));
-      final int notificationId = 'saly_$i'.hashCode;
+    // Get location to check prayer times
+    final locData = sh.getString('/location');
+    double lat = 30.0444;
+    double lng = 31.2357;
+    if (locData != null) {
+      try {
+        final map = jsonDecode(locData);
+        lat = (map['latitude'] as num).toDouble();
+        lng = (map['longitude'] as num).toDouble();
+      } catch (e) {
+        debugPrint('Error decoding location for Saly: $e');
+      }
+    }
+    
+    final coords = Coordinates(lat, lng);
+    final params = CalculationMethod.egyptian.getParameters();
+    
+    DateTime now = DateTime.now();
+    // Start 60 minutes from now, so it's not strictly at minute 0
+    DateTime nextSaly = now.add(const Duration(minutes: 60));
+    
+    int scheduledCount = 0;
+    
+    // Schedule for 10 days (240 hours) so it keeps working even if the app isn't opened for a while.
+    for (int i = 1; i <= 240; i++) {
+      final prayerTimes = PrayerTimes(
+        coords,
+        DateComponents.from(nextSaly),
+        params,
+      );
+      
+      bool collision = false;
+      final prayers = [
+        prayerTimes.fajr.toLocal(),
+        prayerTimes.dhuhr.toLocal(),
+        prayerTimes.asr.toLocal(),
+        prayerTimes.maghrib.toLocal(),
+        prayerTimes.isha.toLocal()
+      ];
+      
+      DateTime scheduledTime = nextSaly;
+      do {
+        collision = false;
+        for (final p in prayers) {
+          // If Saly is within 10 minutes of Adhan, delay it by 10 minutes and check again
+          if (scheduledTime.difference(p).inMinutes.abs() <= 10) {
+            collision = true;
+            scheduledTime = scheduledTime.add(const Duration(minutes: 10));
+            break;
+          }
+        }
+      } while (collision);
 
       await AwesomeNotifications().createNotification(
         content: NotificationContent(
-          id: notificationId,
+          id: 'saly_$i'.hashCode,
           channelKey: 'saly_channel',
           title: 'الصلاة على النبي ﷺ',
           body: 'إِنَّ اللَّهَ وَمَلائِكَتَهُ يُصَلُّونَ عَلَى النَّبِيِّ',
@@ -232,6 +303,7 @@ class NotificationService {
           autoDismissible: true,
           wakeUpScreen: true,
           fullScreenIntent: false,
+          groupKey: 'saly_group',
         ),
         schedule: NotificationCalendar(
           timeZone: timeZone,
@@ -240,28 +312,28 @@ class NotificationService {
           day: scheduledTime.day,
           hour: scheduledTime.hour,
           minute: scheduledTime.minute,
-          second: 0,
+          second: scheduledTime.second,
           preciseAlarm: true,
           allowWhileIdle: true,
           repeats: false,
         ),
       );
+      
+      nextSaly = nextSaly.add(const Duration(hours: 1));
+      scheduledCount++;
     }
 
     await sh.setString(
         '/saly_last_scheduled', DateTime.now().toIso8601String());
-    debugPrint('SALY: 72 notifications scheduled ✅');
+    debugPrint('SALY: Scheduled $scheduledCount notifications ✅');
   }
 
   Future<void> cancelSalyNotifier() async {
-    for (int i = 1; i <= 720; i++) {
-      await AwesomeNotifications().cancel('saly_$i'.hashCode);
-    }
-    await AwesomeNotifications().cancel('saly'.hashCode);
+    await AwesomeNotifications().cancelNotificationsByChannelKey('saly_channel');
   }
 
   // ============================================================
-  // تحقق إذا محتاج تجديد — كل 1 يوم
+  // RENEWAL CHECKS
   // ============================================================
   bool needsSalyRenewal() {
     final lastScheduled = sh.getString('/saly_last_scheduled');
@@ -273,9 +345,6 @@ class NotificationService {
     return daysSince >= 1;
   }
 
-  // ============================================================
-  // تحقق إذا محتاج تجديد الأذان — كل 1 يوم
-  // ============================================================
   bool needsPrayerRenewal() {
     final lastScheduled = sh.getString('/prayer_last_scheduled');
     if (lastScheduled == null) return true;
